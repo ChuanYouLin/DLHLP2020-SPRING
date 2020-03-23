@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 from src.solver import BaseSolver
 from src.asr import Transducer
 from src.decode import BeamDecoder
-from src.data import load_dataset
+from src.data import load_dataset, load_test_dataset
 import os
 
 class Solver(BaseSolver):
@@ -39,8 +39,8 @@ class Solver(BaseSolver):
 
     def load_data(self):
         ''' Load data for training/validation, store tokenizer and input/output shape'''
-        self.dv_set, self.tt_set, self.feat_dim, self.vocab_size, self.tokenizer, msg = \
-            load_dataset(self.paras.njobs, self.paras.gpu,
+        self.tt_set, self.feat_dim, self.vocab_size, self.tokenizer, msg = \
+            load_test_dataset(self.paras.njobs, self.paras.gpu,
                          self.paras.pin_memory, False, **self.config['data'])
         self.verbose(msg)
 

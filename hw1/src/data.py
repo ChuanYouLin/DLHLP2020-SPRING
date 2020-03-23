@@ -164,6 +164,51 @@ def load_dataset(n_jobs, use_gpu, pin_memory, ascending, corpus, audio, text):
     return tr_set, dv_set, feat_dim, tokenizer.vocab_size, tokenizer, data_msg
 
 
+def load_test_dataset(n_jobs, use_gpu, pin_memory, ascending, corpus, audio, text):
+    ''' Prepare dataloader for training/validation'''
+    def _create_dataset(tokenizer, ascending, name, path, bucketing, batch_size,
+                       train_split=None, dev_split=None, test_split=None):
+        ''' Interface for creating all kinds of dataset'''
+
+        # Recognize corpus
+        if name.lower() == "librispeech":
+            from corpus.librispeech import LibriDataset as Dataset
+        elif name.lower() == "dlhlp":
+            from corpus.dlhlp import DlhlpDataset as Dataset
+        elif name.lower() == 'external':
+            from corpus.external import ExternalDataset as Dataset
+        else:
+            raise NotImplementedError
+    
+        # Testing model
+        mode = 'test'
+        # Do not use bucketing for test set
+        tt_set = Dataset(path, test_split, tokenizer, 1)
+        # Messages to show
+        return tt_set, batch_size, mode, []
+        
+    # Audio feature extractor
+    audio_transform, feat_dim = create_transform(audio.copy())
+    # Text tokenizer
+    tokenizer = load_text_encoder(**text)
+    # Dataset (in testing mode, tr_set=dv_set, dv_set=tt_set)
+    dv_set, dv_loader_bs, mode, data_msg = _create_dataset(
+        tokenizer, ascending, **corpus)
+    # Collect function
+    collect_dv = partial(collect_audio_batch,
+                         audio_transform=audio_transform, mode='test')
+    # Shuffle/drop applied to training set only
+    shuffle = (mode == 'train' and not ascending)
+    # Create data loader
+    dv_set = DataLoader(dv_set, batch_size=dv_loader_bs, shuffle=False, drop_last=False, collate_fn=collect_dv,
+                        num_workers=n_jobs, pin_memory=pin_memory)
+    # Messages to show
+    data_msg.append('I/O spec.  | Audio feature = {}\t| feature dim = {}\t| Token type = {}\t| Vocab size = {}'
+                    .format(audio['feat_type'], feat_dim, tokenizer.token_type, tokenizer.vocab_size))
+
+    return dv_set, feat_dim, tokenizer.vocab_size, tokenizer, data_msg
+
+
 def load_textset(n_jobs, use_gpu, pin_memory, corpus, text):
     
     # Text tokenizer
