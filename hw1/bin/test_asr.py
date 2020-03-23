@@ -72,7 +72,7 @@ class Solver(BaseSolver):
     
     def exec(self):
         ''' Testing End-to-end ASR system '''
-        for s, ds in zip(['dev', 'test'], [self.dv_set, self.tt_set]):
+        for s, ds in zip(['test'], [self.tt_set]):
             # Setup output
             # self.cur_output_path = self.output_file.format(s, 'output')
             f = open(self.output_file, 'w')
